@@ -1,0 +1,157 @@
+<!-- templates/accountDeletion.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Account Deletion Notification</title>
+  <!-- Import Poppins Font from Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Reset some default styles */
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .logo{
+        margin-bottom: 20px;
+        background: #061aab; 
+        text-align: center;
+        padding: 30px 20px;
+    }
+
+    /* Base styles */
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f4f6f8;
+      padding: 20px;
+      color: #333333;
+    }
+
+    .container {
+      background-color: #ffffff;
+      padding: 40px;
+      border-radius: 12px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: start;
+    }
+
+    .logo img {
+      width: 150px;
+      height: auto;
+    }
+
+    h2 {
+      color: #000000; /* Brand Color */
+      margin-bottom: 20px;
+      font-weight: 700;
+      font-size: 24px;
+    }
+
+    p {
+      color: #000000;
+      font-weight: 300;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+    
+    a{
+      color: #061aab;
+      text-decoration: none;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 14px 28px;
+      background: #061aab; /* Solid Brand Color */
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 4px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      transition: background 0.3s ease, transform 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    .button:hover {
+      background: #0041c4;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .info-box {
+      background-color: #fff0f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid #e74c3c;
+    }
+
+    .footer {
+      margin-top: 30px;
+      font-size: 14px;
+      color: #000000;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 20px;
+    }
+
+    .footer p {
+      margin: 0;
+      margin-bottom: 8px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+
+      .button {
+        width: 100%;
+        padding: 12px 0;
+      }
+
+      h2 {
+        font-size: 20px;
+      }
+
+      p {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Logo Section -->
+    <div class="logo">
+      <img src="https://res.cloudinary.com/dvbbsgj1u/image/upload/v1731090126/tesnhlpvlo6w9bdjepag.png" alt="10X Logo">
+    </div>
+  
+    <h2>Account Deletion Notification</h2>
+    <p>Hello {{name}},</p>
+    
+    <div class="info-box">
+      <p style="margin-bottom: 0;">We're writing to inform you that your 10X Partner account has been deleted by an administrator.</p>
+    </div>
+    
+    <p>If you believe this was done in error or have any questions, please contact our support team.</p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="{{supportUrl}}" class="button">Contact Support</a>
+    </div>
+    
+    <div class="footer">
+      <p>Thank you,<br/>The 10X Team</p>
+      <p>If the button above doesn't work, you can reach us at <a href="mailto:support@10xformulas.com">support@10xformulas.com</a></p>
+      <p style="color: #666; font-size: 12px; margin-top: 15px;">This is an automated message, please do not reply directly to this email.</p>
+    </div>
+  </div>
+</body>
+</html>

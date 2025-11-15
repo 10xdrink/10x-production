@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Application Update</title>
+  <!-- Import Poppins Font from Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Reset some default styles */
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .logo{
+        margin-bottom: 20px;
+        background: #061aab; 
+        text-align: center;
+        padding: 30px 20px;
+    }
+
+    /* Base styles */
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f4f6f8;
+      padding: 20px;
+      color: #333333;
+    }
+
+    .container {
+      background-color: #ffffff;
+      padding: 40px;
+      border-radius: 12px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: start;
+    }
+
+    .logo img {
+      width: 150px;
+      height: auto;
+    }
+
+    h2 {
+      color: #000000; /* Brand Color */
+      margin-bottom: 20px;
+      font-weight: 700;
+      font-size: 24px;
+    }
+
+    p {
+      color: #000000;
+      font-weight: 300;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+
+    a{
+        color: #061aab;
+        text-decoration: none;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 14px 28px;
+      background: #061aab; /* Solid Brand Color */
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 4px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      transition: background 0.3s ease, transform 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    .button:hover {
+      background: #0041c4;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .reason-box {
+      background-color: #fff0f0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid #e74c3c;
+    }
+
+    .reason-box h3 {
+      color: #e74c3c;
+      margin-top: 0;
+      font-size: 18px;
+    }
+
+    .next-steps-box {
+      background-color: #e8f4ff;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid #3498db;
+    }
+
+    .next-steps-box h3 {
+      color: #3498db;
+      margin-top: 0;
+      font-size: 18px;
+    }
+
+    .steps-list {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .steps-list li {
+      margin-bottom: 10px;
+      position: relative;
+    }
+
+    .highlight {
+      font-weight: 600;
+      color: #3498db;
+    }
+
+    .footer {
+      margin-top: 30px;
+      font-size: 14px;
+      color: #000000;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 20px;
+    }
+
+    .footer p {
+      margin: 0;
+      margin-bottom: 8px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+
+      .button {
+        width: 100%;
+        padding: 12px 0;
+      }
+
+      h2 {
+        font-size: 20px;
+      }
+
+      p {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Logo Section -->
+    <div class="logo">
+      <img src="https://res.cloudinary.com/dvbbsgj1u/image/upload/v1731090126/tesnhlpvlo6w9bdjepag.png" alt="10X Logo">
+    </div>
+  
+    <h2>Update on Your Partner Application</h2>
+    <p>Hi {{name}},</p>
+    <p>Thank you for your interest in becoming a 10X Partner. We've carefully reviewed your application and appreciate the time you took to apply.</p>
+
+    <p>We regret to inform you that your application has been canceled at this time.</p>
+
+    <div class="reason-box">
+      <h3>Reason for Cancellation</h3>
+      <p>{{reason}}</p>
+    </div>
+
+    <p>We understand this may be disappointing, but we encourage you to consider the following options:</p>
+
+    <div class="next-steps-box">
+      <h3>Next Steps to Consider</h3>
+      <ul class="steps-list">
+        <li><strong>Reapply in the future</strong> - Consider addressing the feedback above and reapplying in 3 months.</li>
+        <li><strong>Join our community</strong> - Connect with us on social media and become an active member of our community.</li>
+        <li><strong>Request additional feedback</strong> - If you'd like more specific guidance, you can reach out to our partner team.</li>
+      </ul>
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="https://10xdrink.com/contact" class="button">Contact Our Team</a>
+    </div>
+
+    <p>We value your interest in 10X and appreciate your understanding. If you have any questions or would like to discuss your application further, please don't hesitate to reach out to our support team.</p>
+    
+    <div class="footer">
+      <p>Best regards,<br/>The 10X Team</p>
+      <p><a href="http://10xdrink.com/contact">Contact Support</a></p>
+      <p style="color: #666; font-size: 12px; margin-top: 15px;">This email was sent to you regarding your application to the 10X Partner Program. If you did not apply for this program, please contact our support team immediately.</p>
+    </div>
+  </div>
+</body>
+</html> 

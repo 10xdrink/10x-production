@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Application Approved!</title>
+  <!-- Import Poppins Font from Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Reset some default styles */
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .logo{
+        margin-bottom: 20px;
+        background: #061aab; 
+        text-align: center;
+        padding: 30px 20px;
+    }
+
+    /* Base styles */
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #f4f6f8;
+      padding: 20px;
+      color: #333333;
+    }
+
+    .container {
+      background-color: #ffffff;
+      padding: 40px;
+      border-radius: 12px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      text-align: start;
+    }
+
+    .logo img {
+      width: 150px;
+      height: auto;
+    }
+
+    h2 {
+      color: #000000; /* Brand Color */
+      margin-bottom: 20px;
+      font-weight: 700;
+      font-size: 24px;
+    }
+
+    p {
+      color: #000000;
+      font-weight: 300;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+
+    a{
+        color: #061aab;
+        text-decoration: none;
+    }
+
+    .button {
+      display: inline-block;
+      padding: 14px 28px;
+      background: #061aab; /* Solid Brand Color */
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 4px;
+      font-family: 'Poppins', sans-serif;
+      font-weight: 600;
+      transition: background 0.3s ease, transform 0.3s ease;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    .button:hover {
+      background: #0041c4;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .success-box {
+      background-color: #e6f9e6;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid #28a745;
+    }
+
+    .success-box h3 {
+      color: #28a745;
+      margin-top: 0;
+      font-size: 18px;
+    }
+
+    .next-steps-box {
+      background-color: #e8f4ff;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-left: 4px solid #3498db;
+    }
+
+    .next-steps-box h3 {
+      color: #3498db;
+      margin-top: 0;
+      font-size: 18px;
+    }
+
+    .steps-list {
+      margin: 0;
+      padding-left: 20px;
+    }
+
+    .steps-list li {
+      margin-bottom: 10px;
+      position: relative;
+    }
+
+    .highlight {
+      font-weight: 600;
+      color: #28a745;
+    }
+
+    .footer {
+      margin-top: 30px;
+      font-size: 14px;
+      color: #000000;
+      border-top: 1px solid #e0e0e0;
+      padding-top: 20px;
+    }
+
+    .footer p {
+      margin: 0;
+      margin-bottom: 8px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 600px) {
+      .container {
+        padding: 20px;
+      }
+
+      .button {
+        width: 100%;
+        padding: 12px 0;
+      }
+
+      h2 {
+        font-size: 20px;
+      }
+
+      p {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Logo Section -->
+    <div class="logo">
+      <img src="https://res.cloudinary.com/dvbbsgj1u/image/upload/v1731090126/tesnhlpvlo6w9bdjepag.png" alt="10X Logo">
+    </div>
+  
+    <h2>Congratulations! Your Application is Approved</h2>
+    <p>Hi {{name}},</p>
+    <p>We're excited to inform you that your application to become a 10X Partner has been <span class="highlight">approved</span>! We believe your influence and audience align perfectly with our brand values, and we look forward to a successful partnership.</p>
+
+    <div class="success-box">
+      <h3>Your Account is Ready to Be Created</h3>
+      <p>The next step is to set up your partner account using the email address you provided: <strong>{{email}}</strong></p>
+      <p style="margin-bottom: 0;">Click the button below to create your account and set up your password.</p>
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="http://localhost:8080" class="button">CREATE YOUR ACCOUNT</a>
+    </div>
+
+    <div class="next-steps-box">
+      <h3>What Happens Next</h3>
+      <ol class="steps-list">
+        <li>Click the button above to create your account and set your password</li>
+        <li>Complete your partner profile with additional details</li>
+        <li>Explore available campaigns and promotions</li>
+        <li>Set up your payment information to receive commissions</li>
+      </ol>
+    </div>
+
+    <p>Our team is here to support you every step of the way. If you have any questions or need assistance, please reach out to our support team.</p>
+
+    <p>Welcome to the 10X family!</p>
+    
+    <div class="footer">
+      <p>Best regards,<br/>The 10X Team</p>
+      <p><a href="http://10xdrink.com/contact">Contact Support</a></p>
+      <p style="color: #666; font-size: 12px; margin-top: 15px;">This email was sent to you because your application to the 10X Partner Program was approved. If you did not apply for this program, please contact our support team immediately.</p>
+    </div>
+  </div>
+</body>
+</html> 
