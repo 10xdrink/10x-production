@@ -118,10 +118,11 @@ function testJWSSigning(payload) {
   console.log('\n✍️  Step 4: Testing JWS Signing...\n');
   
   try {
+    // FIXED: kid = Security ID (keyId), clientid = Client ID
     const header = {
       alg: 'HS256',
-      kid: CONFIG.keyId,
-      clientid: CONFIG.clientId
+      kid: CONFIG.keyId,           // Security ID
+      clientid: CONFIG.clientId    // Client ID
     };
     
     const base64url = (input) =>

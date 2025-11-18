@@ -137,12 +137,12 @@ async function encryptJWE(jsonPayload) {
  */
 function generateJWS(payload) {
   try {
-    // FIXED: Use actual signing key ID instead of 'HMAC'
-    // CRITICAL: Both kid and clientid must be the Security ID (keyId), NOT the Client ID
+    // FIXED: Correct JWS header format matching BillDesk documentation
+    // kid = Security ID (keyId), clientid = Client ID
     const header = {
       alg: 'HS256',                         // HMAC SHA-256 algorithm
-      kid: BILLDESK_CONFIG.keyId,           // Security ID
-      clientid: BILLDESK_CONFIG.keyId       // Security ID (same as kid per BillDesk docs)
+      kid: BILLDESK_CONFIG.keyId,           // Security ID (key identifier)
+      clientid: BILLDESK_CONFIG.clientId    // Client ID (NOT keyId - this was the bug!)
     };
 
     logger.info('JWS Header:', JSON.stringify(header));
