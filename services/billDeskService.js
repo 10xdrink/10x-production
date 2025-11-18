@@ -563,7 +563,16 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
         formHtml: responseBody,
         transactionId: txn._id,
         orderNumber,
-        isRedirect: true
+        isRedirect: true,
+        // Debug info for frontend console
+        debugInfo: {
+          traceId: traceId,
+          timestamp: timestamp,
+          requestUrl: BILLDESK_CONFIG.paymentUrl,
+          jsonRequest: jsonRequest,
+          jwsToken: jwsToken,
+          responseBody: responseBody.substring(0, 500) + '...'
+        }
       };
     }
     
@@ -592,6 +601,14 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
             rdata: rdata || null,
             transactionId: txn._id,
             orderNumber,
+            // Debug info for frontend console
+            debugInfo: {
+              traceId: traceId,
+              timestamp: timestamp,
+              requestUrl: BILLDESK_CONFIG.paymentUrl,
+              jsonRequest: jsonRequest,
+              jwsToken: jwsToken
+            }
           };
         }
       } catch (jsonError) {
