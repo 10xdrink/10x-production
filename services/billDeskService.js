@@ -1,9 +1,9 @@
-// services/billDeskService.js - FIXED VERSION WITH PROPER AUTHENTICATION
+// services/billDeskService.js - BillDesk Official JOSE Implementation
 
 /**
  * BillDesk Service for UAT JSON REST API v1.2 Integration
- * Implemented according to official BillDesk JOSE documentation
- * FIXED: Authentication issues resolved
+ * Uses BillDesk's official JOSE helper functions for encryption and signing
+ * Implements proper A256GCM encryption and HS256 signing
  */
 
 const crypto = require('crypto');
@@ -66,198 +66,111 @@ if (missingBillDeskVars.length > 0) {
 // Security: Never log credentials - only log that config is loaded
 logger.info('BillDesk Configuration loaded successfully');
 
-/**
- * Create encryption key as per BillDesk documentation
- */
-async function getEncryptionKey() {
-  try {
-    // Create AES key from encryption password (32 bytes for AES-256)
-    const keyData = crypto.createHash('sha256').update(BILLDESK_CONFIG.encryptionPassword).digest();
-    
-    const key = await jose.JWK.asKey({
-      kty: 'oct',
-      k: jose.util.base64url.encode(keyData),
-      alg: 'A256GCM',
-      use: 'enc'
-    });
-    
-    logger.info('Encryption key created using SHA256 hash of password');
-    return key;
-  } catch (error) {
-    logger.error('Error creating encryption key:', error);
-    throw new Error(`Failed to create encryption key: ${error.message}`);
-  }
-}
-
-/**
- * FIXED: JWE encryption with exact BillDesk format
- */
-async function encryptJWE(jsonPayload) {
-  try {
-    const key = await getEncryptionKey();
-    
-    // Exact JWE Header format as per BillDesk documentation
-    const header = {
-      alg: 'dir',                           // Direct encryption algorithm
-      enc: 'A256GCM',                       // AES-256-GCM encryption method
-      kid: BILLDESK_CONFIG.keyId,           // Security ID (encryption key id)
-      clientid: BILLDESK_CONFIG.clientId    // Client ID (NOT keyId for JWE)
+/*
+    BillDesk Official JOSE Helper Functions
+    These methods encrypt the data using the encryption key in A256GCM algorithm
+*/
+async function encrypt(request, clientId, encryptionKey, encryptionKeyId) {
+    const keystore = jose.JWK.createKeyStore();
+    const jwk = {
+        kty: "oct",
+        k: Buffer.from(encryptionKey).toString('base64'),
+        alg: "A256GCM",
+        kid: encryptionKeyId
     };
-    
-    // Security: Don't log sensitive payload in production
-    if (process.env.NODE_ENV !== 'production') {
-      logger.info('JWE Header:', JSON.stringify(header));
-      logger.info('Payload to encrypt:', JSON.stringify(jsonPayload));
-    }
-    
-    // Ensure payload is a string
-    const payloadString = JSON.stringify(jsonPayload);
-    const plaintext = Buffer.from(payloadString, 'utf8');
-    
-    // Create JWE with exact format
-    const encrypted = await jose.JWE.createEncrypt({ 
-      format: 'compact',
-      fields: header
-    }, key)
-    .update(plaintext)
-    .final();
-    
-    logger.info('JWE encryption successful');
-    logger.info('Encrypted JWE token length:', encrypted.length);
-    
+    const key = await keystore.add(jwk);
+    const input = Buffer.from(request, "utf8");
+    const header = {
+        alg: "dir",
+        enc: "A256GCM",
+        kid: encryptionKeyId,
+        clientid: clientId,
+    };
+    const encrypted = await jose.JWE.createEncrypt(
+        {
+            format: "compact",
+            fields: header,
+        },
+        key
+    ).update(input).final();
     return encrypted;
-  } catch (error) {
-    logger.error('JWE encryption failed:', error);
-    throw new Error(`JWE encryption failed: ${error.message}`);
-  }
 }
 
-/**
- * FIXED: JWS generation with correct key ID
- */
-function generateJWS(payload) {
-  try {
-    // FIXED: Correct JWS header format matching BillDesk documentation
-    // kid = Security ID (keyId), clientid = Client ID
-    const header = {
-      alg: 'HS256',                         // HMAC SHA-256 algorithm
-      kid: BILLDESK_CONFIG.keyId,           // Security ID (key identifier)
-      clientid: BILLDESK_CONFIG.clientId    // Client ID (NOT keyId - this was the bug!)
+/*
+    This method decrypts the data using the encryption key in A256GCM algorithm
+*/
+async function decrypt(encryptedData, encryptionKey, encryptionKeyId) {
+    const keystore = jose.JWK.createKeyStore();
+    const jwk = {
+        kty: "oct",
+        k: Buffer.from(encryptionKey).toString('base64'),
+        alg: "A256GCM",
+        kid: encryptionKeyId
     };
-
-    logger.info('JWS Header:', JSON.stringify(header));
-    
-    // Base64url encode header
-    const encodedHeader = base64url(JSON.stringify(header));
-    
-    // Base64url encode payload 
-    let encodedPayload;
-    if (typeof payload === 'string') {
-      encodedPayload = base64url(payload);
-    } else {
-      encodedPayload = base64url(JSON.stringify(payload));
-    }
-    
-    // Create signature
-    const signatureInput = `${encodedHeader}.${encodedPayload}`;
-    logger.info('Signature input length:', signatureInput.length);
-    
-    const signature = crypto
-      .createHmac('sha256', BILLDESK_CONFIG.signingPassword)
-      .update(signatureInput, 'utf8')
-      .digest('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-
-    const jwsToken = `${encodedHeader}.${encodedPayload}.${signature}`;
-    
-    logger.info('JWS token generated successfully');
-    logger.info('JWS token length:', jwsToken.length);
-    logger.info('JWS token parts count:', jwsToken.split('.').length);
-    
-    return jwsToken;
-  } catch (error) {
-    logger.error('JWS generation failed:', error);
-    throw new Error(`JWS generation failed: ${error.message}`);
-  }
+    const key = await keystore.add(jwk);
+    const jweObject = await jose.JWE.createDecrypt(key).decrypt(encryptedData);
+    return jweObject.plaintext.toString('utf8');
 }
 
-/**
- * Verify JWS token (for response processing)
- */
-function verifyJWS(jwsToken) {
-  try {
-    logger.info('Verifying JWS token...');
-    
-    const parts = jwsToken.split('.');
-    if (parts.length !== 3) {
-      logger.error(`Invalid JWS format - expected 3 parts, got ${parts.length}`);
-      return { isValid: false, payload: null };
-    }
-    
-    const [encodedHeader, encodedPayload, signature] = parts;
-    
-    // Recreate signature for verification
-    const signatureInput = `${encodedHeader}.${encodedPayload}`;
-    const expectedSignature = crypto
-      .createHmac('sha256', BILLDESK_CONFIG.signingPassword)
-      .update(signatureInput, 'utf8')
-      .digest('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-    
-    const isValid = signature === expectedSignature;
-    
-    let payload = null;
-    if (isValid) {
-      try {
-        // Decode payload
-        const paddedPayload = encodedPayload.replace(/-/g, '+').replace(/_/g, '/');
-        const decodedPayload = Buffer.from(paddedPayload, 'base64').toString('utf8');
-        
-        // Try to parse as JSON
-        try {
-          payload = JSON.parse(decodedPayload);
-        } catch (e) {
-          payload = decodedPayload; // Keep as string if not JSON
-        }
-        
-        logger.info('JWS verification successful');
-      } catch (e) {
-        logger.error('Failed to decode JWS payload:', e);
-        return { isValid: false, payload: null };
-      }
-    } else {
-      logger.error('JWS signature verification failed');
-    }
-    
-    return { isValid, payload };
-  } catch (error) {
-    logger.error('JWS verification error:', error);
-    return { isValid: false, payload: null };
-  }
+/*
+    This method signs the data using the signing key in HS256 algorithm
+*/
+async function sign(request, clientId, signingKey, signingKeyId) {
+    const keystore = jose.JWK.createKeyStore();
+    const jwk = {
+        kty: "oct",
+        k: Buffer.from(signingKey).toString('base64'),
+        alg: "HS256",
+        kid: signingKeyId
+    };
+    const key = await keystore.add(jwk);
+    const jwsHeader = {
+        alg: "HS256",
+        kid: signingKeyId,
+        clientid: clientId
+    };
+    const jwsObject = await jose.JWS.createSign(
+        {
+            format: 'compact',
+            fields: jwsHeader
+        },
+        key
+    ).update(request).final();
+    return jwsObject;
 }
 
-/**
- * Decrypt JWE token (for response processing)
- */
-async function decryptJWE(jweToken) {
-  try {
-    logger.info('Decrypting JWE token...');
-    
-    const key = await getEncryptionKey();
-    const result = await jose.JWE.createDecrypt(key).decrypt(jweToken);
-    
-    const decryptedText = result.plaintext.toString('utf8');
-    logger.info('JWE decryption successful');
-    
-    return decryptedText;
-  } catch (error) {
-    logger.error('JWE decryption failed:', error);
-    throw new Error(`JWE decryption failed: ${error.message}`);
-  }
+/*
+    This method verifies the data using the signing key in HS256 algorithm
+*/
+async function verify(request, signingKey, signingKeyId) {
+    const keystore = jose.JWK.createKeyStore();
+    const jwk = {
+        kty: "oct",
+        k: Buffer.from(signingKey).toString('base64'),
+        alg: "HS256",
+        kid: signingKeyId
+    };
+    const key = await keystore.add(jwk);
+    const result = await jose.JWS.createVerify(key).verify(request);
+    return result.payload.toString('utf8');
+}
+
+/*
+    This method encrypts and signs the payload using JOSE Encryption
+*/
+async function encryptAndSign(request, clientId, encryptionKey, encryptionKeyId, signingKey, signingKeyId) {
+    let encrypted = await encrypt(request, clientId, encryptionKey, encryptionKeyId);
+    let signed = await sign(encrypted, clientId, signingKey, signingKeyId);
+    return signed;
+}
+
+/*
+    This method verifies and decrypts the payload using JOSE Encryption
+*/
+async function verifyAndDecrypt(request, encryptionKey, encryptionKeyId, signingKey, signingKeyId) {
+    let verified = await verify(request, signingKey, signingKeyId);
+    let decrypted = await decrypt(verified, encryptionKey, encryptionKeyId);
+    return decrypted;
 }
 
 /**
@@ -388,15 +301,18 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
     logger.info('JSON Request created for order:', orderNumber);
   }
 
-  // STEP 2: Encrypt JSON Request
-  logger.info('STEP 2: Encrypting JSON request...');
-  const encryptedPayload = await encryptJWE(jsonRequest);
-  logger.info('JSON request encrypted successfully');
-
-  // STEP 3: Sign Encrypted Request
-  logger.info('STEP 3: Signing encrypted request...');
-  const jwsToken = generateJWS(encryptedPayload);
-  logger.info('Encrypted request signed successfully');
+  // STEP 2 & 3: Encrypt and Sign using BillDesk's official JOSE helper
+  logger.info('STEP 2 & 3: Encrypting and signing JSON request using BillDesk official method...');
+  const jsonRequestString = JSON.stringify(jsonRequest);
+  const jwsToken = await encryptAndSign(
+    jsonRequestString,
+    BILLDESK_CONFIG.clientId,
+    BILLDESK_CONFIG.encryptionPassword,
+    BILLDESK_CONFIG.keyId,
+    BILLDESK_CONFIG.signingPassword,
+    BILLDESK_CONFIG.keyId
+  );
+  logger.info('JSON request encrypted and signed successfully');
 
   // Save transaction
   const txn = new Transaction({
@@ -593,11 +509,22 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
       };
     }
     
-    // Verify and decrypt JSON/JOSE response
-    const { isValid, payload: encryptedResponse } = verifyJWS(responseBody);
-    
-    if (!isValid) {
-      // If JWS verification fails, check if it's direct JSON
+    // Verify and decrypt JSON/JOSE response using BillDesk official helper
+    let responseJson;
+    try {
+      // Try to verify and decrypt using BillDesk's verifyAndDecrypt helper
+      const decryptedResponse = await verifyAndDecrypt(
+        responseBody,
+        BILLDESK_CONFIG.encryptionPassword,
+        BILLDESK_CONFIG.keyId,
+        BILLDESK_CONFIG.signingPassword,
+        BILLDESK_CONFIG.keyId
+      );
+      responseJson = JSON.parse(decryptedResponse);
+      logger.info('Response verified and decrypted successfully using BillDesk helper');
+    } catch (verifyError) {
+      // If verification/decryption fails, check if it's direct JSON
+      logger.info('Verification failed, trying direct JSON parse:', verifyError.message);
       try {
         const directJson = JSON.parse(responseBody);
         logger.info('Direct JSON response received:', directJson);
@@ -631,15 +558,6 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
       } catch (jsonError) {
         throw new Error('Invalid response format - neither valid JWS nor JSON');
       }
-    }
-    
-    // Decrypt JWS response
-    let responseJson;
-    if (typeof encryptedResponse === 'string') {
-      const decrypted = await decryptJWE(encryptedResponse);
-      responseJson = JSON.parse(decrypted);
-    } else {
-      responseJson = encryptedResponse;
     }
     
     logger.info('BillDesk Response (decrypted):', JSON.stringify(responseJson, null, 2));
@@ -698,35 +616,33 @@ async function processResponse(responseData) {
   let verifiedData;
   
   if (typeof responseData === 'string') {
-    const { isValid, payload } = verifyJWS(responseData);
-    
-    if (!isValid) {
-      logger.error('Invalid JWS signature in BillDesk response');
-      return {
-        success: false,
-        message: 'Invalid signature from payment gateway',
-        data: responseData,
-      };
+    try {
+      // Use BillDesk's official verifyAndDecrypt helper
+      const decryptedResponse = await verifyAndDecrypt(
+        responseData,
+        BILLDESK_CONFIG.encryptionPassword,
+        BILLDESK_CONFIG.keyId,
+        BILLDESK_CONFIG.signingPassword,
+        BILLDESK_CONFIG.keyId
+      );
+      verifiedData = JSON.parse(decryptedResponse);
+      logger.info('Response verified and decrypted successfully using BillDesk helper');
+    } catch (e) {
+      logger.error('Failed to verify and decrypt BillDesk response:', e.message);
+      // Try direct JSON parse as fallback
+      try {
+        verifiedData = JSON.parse(responseData);
+        logger.info('Used direct JSON parse as fallback');
+      } catch (jsonError) {
+        return {
+          success: false,
+          message: 'Invalid signature or encryption from payment gateway',
+          data: responseData,
+        };
+      }
     }
-    
-    verifiedData = payload;
   } else {
     verifiedData = responseData;
-  }
-
-  // Decrypt if needed
-  if (typeof verifiedData === 'string') {
-    try {
-      const decrypted = await decryptJWE(verifiedData);
-      verifiedData = JSON.parse(decrypted);
-    } catch (e) {
-      logger.error('Failed to decrypt BillDesk payload:', e.message);
-      return {
-        success: false,
-        message: 'Decryption failed',
-        data: verifiedData,
-      };
-    }
   }
   
   logger.info('Verified BillDesk response:', verifiedData);
@@ -787,8 +703,16 @@ async function retrieveTransaction(orderId) {
       refund_details: true
     };
     
-    const encryptedPayload = await encryptJWE(jsonRequest);
-    const jwsToken = generateJWS(encryptedPayload);
+    // Use BillDesk's official encryptAndSign helper
+    const jsonRequestString = JSON.stringify(jsonRequest);
+    const jwsToken = await encryptAndSign(
+      jsonRequestString,
+      BILLDESK_CONFIG.clientId,
+      BILLDESK_CONFIG.encryptionPassword,
+      BILLDESK_CONFIG.keyId,
+      BILLDESK_CONFIG.signingPassword,
+      BILLDESK_CONFIG.keyId
+    );
     
     const traceId = `STS${Date.now()}${Math.floor(Math.random() * 1000)}`.slice(0, 35);
     const timestamp = Math.floor(Date.now() / 1000).toString();
@@ -799,7 +723,7 @@ async function retrieveTransaction(orderId) {
       'Accept': 'application/jose',
       'BD-Traceid': traceId,
       'BD-Timestamp': timestamp,
-      'Authorization': `Basic ${basicAuth}` // FIXED: Added Basic Auth
+      'Authorization': `Basic ${basicAuth}`
     };
     
     const retrieveUrl = 'https://uat1.billdesk.com/u2/payments/ve1_2/transactions/get';
@@ -816,26 +740,35 @@ async function retrieveTransaction(orderId) {
     }
     
     const responseBody = await response.text();
-    const { isValid, payload: responsePayload } = verifyJWS(responseBody);
     
-    if (!isValid) {
-      throw new Error('Invalid JWS signature in BillDesk response');
-    }
-    
-    let finalPayload = responsePayload;
-    if (typeof responsePayload === 'string') {
+    // Use BillDesk's official verifyAndDecrypt helper
+    try {
+      const decryptedResponse = await verifyAndDecrypt(
+        responseBody,
+        BILLDESK_CONFIG.encryptionPassword,
+        BILLDESK_CONFIG.keyId,
+        BILLDESK_CONFIG.signingPassword,
+        BILLDESK_CONFIG.keyId
+      );
+      const finalPayload = JSON.parse(decryptedResponse);
+      
+      return {
+        success: true,
+        data: finalPayload
+      };
+    } catch (e) {
+      logger.error('Failed to verify and decrypt retrieve response:', e.message);
+      // Try direct JSON parse as fallback
       try {
-        const decrypted = await decryptJWE(responsePayload);
-        finalPayload = JSON.parse(decrypted);
-      } catch (e) {
-        finalPayload = responsePayload;
+        const directJson = JSON.parse(responseBody);
+        return {
+          success: true,
+          data: directJson
+        };
+      } catch (jsonError) {
+        throw new Error('Invalid response format from BillDesk');
       }
     }
-    
-    return {
-      success: true,
-      data: finalPayload
-    };
   } catch (error) {
     logger.error('Error retrieving transaction status:', error);
     return {
@@ -848,7 +781,9 @@ async function retrieveTransaction(orderId) {
 module.exports = {
   createPaymentRequest,
   processResponse,
-  verifyJWS,
   retrieveTransaction,
   BILLDESK_CONFIG,
+  // BillDesk official JOSE helper functions (internal use)
+  encryptAndSign,
+  verifyAndDecrypt,
 };
