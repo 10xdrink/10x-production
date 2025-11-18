@@ -100,8 +100,8 @@ async function encryptJWE(jsonPayload) {
     const header = {
       alg: 'dir',                           // Direct encryption algorithm
       enc: 'A256GCM',                       // AES-256-GCM encryption method
-      kid: BILLDESK_CONFIG.keyId,           // Key ID (encryption key id)
-      clientid: BILLDESK_CONFIG.clientId    // Client ID
+      kid: BILLDESK_CONFIG.keyId,           // Security ID (encryption key id)
+      clientid: BILLDESK_CONFIG.clientId    // Client ID (NOT keyId for JWE)
     };
     
     // Security: Don't log sensitive payload in production
@@ -138,10 +138,11 @@ async function encryptJWE(jsonPayload) {
 function generateJWS(payload) {
   try {
     // FIXED: Use actual signing key ID instead of 'HMAC'
+    // CRITICAL: Both kid and clientid must be the Security ID (keyId), NOT the Client ID
     const header = {
       alg: 'HS256',                         // HMAC SHA-256 algorithm
-      kid: BILLDESK_CONFIG.keyId,           // FIXED: Use actual signing key ID
-      clientid: BILLDESK_CONFIG.clientId    // Client ID
+      kid: BILLDESK_CONFIG.keyId,           // Security ID
+      clientid: BILLDESK_CONFIG.keyId       // Security ID (same as kid per BillDesk docs)
     };
 
     logger.info('JWS Header:', JSON.stringify(header));
@@ -535,6 +536,22 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
     if (!response.ok) {
       // Security: Don't expose full error details to client
       logger.error('BillDesk API Error Response:', responseBody);
+      
+      // ============================================================================
+      // CONSOLE LOG FOR ERROR RESPONSE
+      // ============================================================================
+      console.log('\n' + '='.repeat(80));
+      console.log('❌ BILLDESK API ERROR RESPONSE');
+      console.log('='.repeat(80));
+      console.log('\n   Trace ID:         ', traceId);
+      console.log('   Status Code:      ', response.status);
+      console.log('   Status Text:      ', response.statusText);
+      console.log('\n   ERROR RESPONSE STRING:');
+      console.log('━'.repeat(80));
+      console.log(responseBody);
+      console.log('━'.repeat(80));
+      console.log('\n💡 REQUEST DETAILS ARE LOGGED ABOVE');
+      console.log('='.repeat(80) + '\n');
       
       // Parse error if possible
       try {

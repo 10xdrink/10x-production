@@ -76,13 +76,32 @@ const initializePayment = async (req, res) => {
             rdata: billDeskOrder.rdata,
             // For API v1.2 flow
             isRedirect: billDeskOrder.isRedirect || false,
-            formHtml: billDeskOrder.formHtml || null
+            formHtml: billDeskOrder.formHtml || null,
+            // DEBUG INFO FOR FRONTEND CONSOLE
+            debugInfo: billDeskOrder.debugInfo || null
           }
         }
       });
     } catch (billDeskError) {
       logger.error(`BillDesk service error: ${billDeskError.message}`);
-      res.status(500).json({ success: false, message: billDeskError.message });
+      
+      // Log error details to console for debugging
+      console.error('\n' + '='.repeat(80));
+      console.error('❌ BILLDESK API ERROR');
+      console.error('='.repeat(80));
+      console.error('Error Message:', billDeskError.message);
+      console.error('Stack:', billDeskError.stack);
+      console.error('='.repeat(80) + '\n');
+      
+      res.status(500).json({ 
+        success: false, 
+        message: billDeskError.message,
+        // Include error details for frontend debugging
+        errorDetails: {
+          message: billDeskError.message,
+          timestamp: new Date().toISOString()
+        }
+      });
     }
   } catch (error) {
     logger.error(`BillDesk payment initialization failed: ${error.message}`);

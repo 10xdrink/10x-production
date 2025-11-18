@@ -57,7 +57,7 @@ build/
 # Credentials and keys
 credentials/
 credentials/*.js
-credentials/*.js.env
+# credentials/*.js.env
 *.pem
 *.key
 *.cert
