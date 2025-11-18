@@ -694,7 +694,7 @@ async function processResponse(responseData) {
 
   let paymentStatus = 'pending';
   if (status.toUpperCase() === 'SUCCESS') {
-    paymentStatus = 'success';
+    paymentStatus = 'completed';
   } else if (status.toUpperCase() === 'FAILED') {
     paymentStatus = 'failed';
   }
@@ -706,7 +706,7 @@ async function processResponse(responseData) {
   await transaction.save();
 
   return {
-    success: paymentStatus === 'success',
+    success: paymentStatus === 'completed',
     message: `Payment ${paymentStatus}`,
     status: paymentStatus,
     transactionId: transaction._id,
