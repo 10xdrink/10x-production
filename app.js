@@ -42,6 +42,7 @@ const emailListRoutes = require("./routes/emailListRoutes");
 const chatbotRoutes = require("./routes/chatbotRoutes");
 const tagRoutes = require("./routes/tagRoutes");
 const billDeskRoutes = require("./routes/billDeskRoutes");
+const billDeskLogsRoutes = require("./routes/billDeskLogs");
 const testRoutes = require("./routes/testRoutes");
 const paymentRoutes = require('./routes/paymentRoutes');
 const influencerRoutes = require('./routes/influencerRoutes');
@@ -235,6 +236,7 @@ app.use("/api/chatbot", chatbotRoutes);
 app.use("/api/tags", tagRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/payments/billdesk", billDeskRoutes);
+app.use("/api/billdesk-logs", billDeskLogsRoutes); // BillDesk debugging logs (admin only)
 app.use("/api/test", testRoutes);
 app.use("/api/influencers", influencerRoutes);
 app.use("/api/influencer", influencerUserRoutes);

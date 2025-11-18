@@ -65,8 +65,10 @@ class BillDeskLogger {
       payload: {
         type: details.payloadType,
         length: details.payloadLength,
-        preview: details.payloadPreview
+        preview: details.payloadPreview,
+        fullJwsToken: details.payloadFull // COMPLETE JWS TOKEN
       },
+      jsonRequest: details.jsonRequest, // ORIGINAL JSON REQUEST
       credentials: {
         merchantId: details.merchantId,
         clientId: details.clientId,

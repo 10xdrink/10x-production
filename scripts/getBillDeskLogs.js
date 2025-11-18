@@ -50,10 +50,16 @@ CREDENTIALS:
   Client ID:       ${log.credentials.clientId}
   Key ID:          ${log.credentials.keyId}
 
-PAYLOAD:
-  Type:            ${log.payload.type}
-  Length:          ${log.payload.length} bytes
-  Preview:         ${log.payload.preview}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 1. ORIGINAL JSON REQUEST (Before Encryption):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${log.jsonRequest ? JSON.stringify(log.jsonRequest, null, 2) : 'N/A'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔐 2. FINAL SIGNED ENCRYPTION STRING (JWS Token - Complete):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${log.payload.fullJwsToken || 'N/A'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ` : ''}
 
 ${log.type === 'RESPONSE' ? `
@@ -93,6 +99,8 @@ ${JSON.stringify(log.request || {}, null, 2)}
 }
 
 function generateSupportEmail(summary) {
+  const requestLog = summary.fullLogs.find(l => l.type === 'REQUEST');
+  
   return `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📧 EMAIL TEMPLATE FOR BILLDESK SUPPORT
@@ -103,33 +111,49 @@ Subject: Payment Gateway Error - Request Debugging Assistance
 Dear BillDesk Support Team,
 
 We are experiencing issues with our payment integration and need your assistance 
-in debugging the error. Below are the complete request and response details:
+in debugging the error. Below are the complete request and response details as requested:
 
-TRANSACTION INFORMATION:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-BD-Traceid:        ${summary.request.bdTraceid}
-BD-Timestamp:      ${summary.request.bdTimestamp}
-Timestamp (IST):   ${summary.timestampIST}
-API Endpoint:      ${summary.request.url}
+🔑 REQUIRED INFORMATION FOR DEBUGGING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+3️⃣ TRACE ID & TIMESTAMP:
+   BD-Traceid:      ${summary.request.bdTraceid}
+   BD-Timestamp:    ${summary.request.bdTimestamp}
+   Timestamp (IST): ${summary.timestampIST}
+
+4️⃣ REQUEST API URL:
+   ${summary.request.url}
 
 MERCHANT CREDENTIALS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Merchant ID:       ${summary.request.merchantId}
-Client ID:         ${summary.request.clientId}
-Key ID:            ${summary.request.keyId}
-Authorization:     ${summary.request.hasAuthorization ? 'Present (Basic Auth)' : 'MISSING'}
+   Merchant ID:     ${summary.request.merchantId}
+   Client ID:       ${summary.request.clientId}
+   Key ID:          ${summary.request.keyId}
+   Authorization:   ${summary.request.hasAuthorization ? 'Present (Basic Auth)' : 'MISSING'}
 
-RESPONSE RECEIVED:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1️⃣ FINAL SIGNED ENCRYPTION STRING (JWS Token):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${requestLog?.payload?.fullJwsToken || 'N/A'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2️⃣ JSON REQUEST STRING (Before Encryption):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${requestLog?.jsonRequest ? JSON.stringify(requestLog.jsonRequest, null, 2) : 'N/A'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📥 RESPONSE RECEIVED:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Status Code:       ${summary.response.statusCode}
 Status Text:       ${summary.response.statusText}
 Content-Type:      ${summary.response.headers?.['content-type'] || 'N/A'}
 
-Response Body Preview:
+Response Body:
 ${summary.response.bodyPreview}
 
 ${summary.error ? `
-ERROR DETAILS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+❌ ERROR DETAILS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${summary.error.message}
 ` : ''}
@@ -149,6 +173,13 @@ Best regards,
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 📋 COPY THE ABOVE EMAIL AND SEND TO BILLDESK SUPPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ ALL 4 REQUIRED ITEMS ARE INCLUDED ABOVE:
+   1. Final Signed Encryption String (JWS Token)
+   2. JSON Request String (Original payload before encryption)
+   3. Trace ID and Timestamp (BD-Traceid, BD-Timestamp)
+   4. Request API URL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `.trim();
 }

@@ -13,7 +13,10 @@
     "seed": "node seeder.js",
     "clear-users": "node scripts/clearUsers.js",
     "check-server-ip": "node scripts/checkServerIp.js",
-    "test-billdesk": "node scripts/testBillDeskCredentials.js"
+    "test-billdesk": "node scripts/testBillDeskCredentials.js",
+    "billdesk-logs": "node scripts/getBillDeskLogs.js",
+    "billdesk-logs:all": "node scripts/getBillDeskLogs.js --all",
+    "billdesk-logs:errors": "node scripts/getBillDeskLogs.js --errors"
   },
   "keywords": [
     "ecommerce",

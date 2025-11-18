@@ -445,6 +445,8 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
     payloadType: 'JWS',
     payloadLength: jwsToken.length,
     payloadPreview: jwsToken.substring(0, 100) + '...',
+    payloadFull: jwsToken, // COMPLETE JWS TOKEN (Final Signed Encryption String)
+    jsonRequest: jsonRequest, // ORIGINAL JSON REQUEST
     merchantId: BILLDESK_CONFIG.merchantId,
     clientId: BILLDESK_CONFIG.clientId,
     keyId: BILLDESK_CONFIG.keyId
