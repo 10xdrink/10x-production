@@ -63,14 +63,14 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://*.billdesk.com"],
-        scriptSrc: ["'self'", "https://*.billdesk.com"],
-        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://*.billdesk.com"],
-        connectSrc: ["'self'", "https://*.billdesk.com"],
-        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://*.billdesk.com", "https://cdnjs.cloudflare.com"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://*.billdesk.com", "https://accounts.google.com", "https://cdnjs.cloudflare.com"],
+        imgSrc: ["'self'", "data:", "https:", "https://res.cloudinary.com", "https://*.billdesk.com", "https://*.googleusercontent.com"],
+        connectSrc: ["'self'", "https://*.billdesk.com", "https://accounts.google.com", "https://*.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
-        frameSrc: ["'self'", "https://*.billdesk.com"],
+        frameSrc: ["'self'", "https://*.billdesk.com", "https://accounts.google.com"],
       },
     },
     hsts: {
