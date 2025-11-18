@@ -435,7 +435,29 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
   // Security: Don't log any request details that could expose credentials
   logger.info('Payment request prepared, sending to gateway...');
 
-  // LOG REQUEST DETAILS FOR BILLDESK SUPPORT
+  // ============================================================================
+  // CONSOLE LOG FOR BILLDESK SUPPORT - ALL 4 REQUIRED ITEMS
+  // ============================================================================
+  console.log('\n' + '='.repeat(80));
+  console.log('🔍 BILLDESK TRANSACTION DETAILS FOR SUPPORT');
+  console.log('='.repeat(80));
+  console.log('\n3️⃣  TRACE ID & TIMESTAMP:');
+  console.log('   BD-Traceid:      ', traceId);
+  console.log('   BD-Timestamp:    ', timestamp);
+  console.log('   Timestamp (IST): ', new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
+  console.log('\n4️⃣  REQUEST API URL:');
+  console.log('   ', BILLDESK_CONFIG.paymentUrl);
+  console.log('\n2️⃣  JSON REQUEST STRING (Before Encryption):');
+  console.log('━'.repeat(80));
+  console.log(JSON.stringify(jsonRequest, null, 2));
+  console.log('━'.repeat(80));
+  console.log('\n1️⃣  FINAL SIGNED ENCRYPTION STRING (JWS Token):');
+  console.log('━'.repeat(80));
+  console.log(jwsToken);
+  console.log('━'.repeat(80));
+  console.log('\n' + '='.repeat(80) + '\n');
+
+  // LOG REQUEST DETAILS FOR BILLDESK SUPPORT (to file)
   billDeskLogger.logRequest({
     traceId: traceId,
     timestamp: timestamp,
@@ -480,7 +502,23 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
     logger.info('Response Body Length:', responseBody.length);
     logger.info('Response Body (first 500 chars):', responseBody.substring(0, 500));
 
-    // LOG RESPONSE DETAILS FOR BILLDESK SUPPORT
+    // ============================================================================
+    // CONSOLE LOG FOR BILLDESK RESPONSE - FOR SUPPORT
+    // ============================================================================
+    console.log('\n' + '='.repeat(80));
+    console.log('📥 BILLDESK RESPONSE DETAILS');
+    console.log('='.repeat(80));
+    console.log('\n   Trace ID:         ', traceId);
+    console.log('   Status Code:      ', response.status);
+    console.log('   Status Text:      ', response.statusText);
+    console.log('   Processing Time:  ', processingTime + 'ms');
+    console.log('\n   RESPONSE STRING:');
+    console.log('━'.repeat(80));
+    console.log(responseBody);
+    console.log('━'.repeat(80));
+    console.log('\n' + '='.repeat(80) + '\n');
+
+    // LOG RESPONSE DETAILS FOR BILLDESK SUPPORT (to file)
     billDeskLogger.logResponse({
       traceId: traceId,
       timestamp: Math.floor(Date.now() / 1000).toString(),
