@@ -8,6 +8,7 @@
 
 const crypto = require('crypto');
 const logger = require('../utils/logger');
+const billDeskLogger = require('../utils/billDeskLogger');
 const Transaction = require('../models/Transaction');
 const Order = require('../models/Order');
 const moment = require('moment-timezone');
@@ -434,8 +435,25 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
   // Security: Don't log any request details that could expose credentials
   logger.info('Payment request prepared, sending to gateway...');
 
+  // LOG REQUEST DETAILS FOR BILLDESK SUPPORT
+  billDeskLogger.logRequest({
+    traceId: traceId,
+    timestamp: timestamp,
+    url: BILLDESK_CONFIG.paymentUrl,
+    method: 'POST',
+    headers: headers,
+    payloadType: 'JWS',
+    payloadLength: jwsToken.length,
+    payloadPreview: jwsToken.substring(0, 100) + '...',
+    merchantId: BILLDESK_CONFIG.merchantId,
+    clientId: BILLDESK_CONFIG.clientId,
+    keyId: BILLDESK_CONFIG.keyId
+  });
+
   try {
     logger.info('Making API call to BillDesk...');
+    
+    const requestStartTime = Date.now();
     
     // Security: Add timeout and abort controller
     const controller = new AbortController();
@@ -450,6 +468,8 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
     
     clearTimeout(timeoutId);
     
+    const processingTime = Date.now() - requestStartTime;
+    
     logger.info('Response Status:', response.status);
     logger.info('Response Status Text:', response.statusText);
     logger.info('Response Headers:', Object.fromEntries([...response.headers.entries()]));
@@ -457,6 +477,20 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
     const responseBody = await response.text();
     logger.info('Response Body Length:', responseBody.length);
     logger.info('Response Body (first 500 chars):', responseBody.substring(0, 500));
+
+    // LOG RESPONSE DETAILS FOR BILLDESK SUPPORT
+    billDeskLogger.logResponse({
+      traceId: traceId,
+      timestamp: Math.floor(Date.now() / 1000).toString(),
+      statusCode: response.status,
+      statusText: response.statusText,
+      headers: Object.fromEntries([...response.headers.entries()]),
+      bodyLength: responseBody.length,
+      bodyType: response.headers.get('content-type'),
+      bodyPreview: responseBody.substring(0, 500),
+      fullBody: responseBody,
+      processingTime: processingTime
+    });
     
     if (!response.ok) {
       // Security: Don't expose full error details to client
@@ -562,6 +596,21 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
     logger.error('=== BillDesk Payment Request Creation Failed ===');
     logger.error('Error message:', error.message);
     logger.error('Full error:', error);
+    
+    // LOG ERROR DETAILS FOR BILLDESK SUPPORT
+    billDeskLogger.logError({
+      traceId: traceId,
+      timestamp: Math.floor(Date.now() / 1000).toString(),
+      errorMessage: error.message,
+      errorStack: error.stack,
+      request: {
+        merchantId: BILLDESK_CONFIG.merchantId,
+        clientId: BILLDESK_CONFIG.clientId,
+        keyId: BILLDESK_CONFIG.keyId,
+        orderNumber: orderNumber
+      }
+    });
+    
     throw new Error(`BillDesk API call failed: ${error.message}`);
   }
 }
