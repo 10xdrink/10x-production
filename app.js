@@ -70,7 +70,9 @@ app.use(
         fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cdnjs.cloudflare.com"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
-        frameSrc: ["'self'", "https://*.billdesk.com", "https://accounts.google.com"],
+        frameSrc: ["'self'", "https://*.billdesk.com", "https://uat1.billdesk.com", "https://accounts.google.com"],
+        childSrc: ["'self'", "https://*.billdesk.com", "https://uat1.billdesk.com", "https://accounts.google.com"],
+        formAction: ["'self'", "https://*.billdesk.com", "https://uat1.billdesk.com"],
       },
     },
     hsts: {
