@@ -277,7 +277,7 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
     mercid: BILLDESK_CONFIG.merchantId,
     orderid: orderNumber,
     amount: amount.toFixed(2),
-    order_date: moment().tz("Asia/Kolkata").format("YYYY-MM-DDTHH:mm:ssZZ"),
+    order_date: moment().tz("Asia/Kolkata").format("YYYY-MM-DDTHH:mm:ssZ"),  // Fixed: Use Z instead of ZZ for proper ISO 8601 format with colon in timezone
     currency: "356",
     ru: BILLDESK_CONFIG.returnUrl,
     additional_info: {
@@ -469,16 +469,41 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
       console.log('\n💡 REQUEST DETAILS ARE LOGGED ABOVE');
       console.log('='.repeat(80) + '\n');
       
-      // Parse error if possible
+      // Try to decrypt error response (BillDesk errors are also encrypted)
+      let errorMessage = `Payment gateway error. Please try again. (Status: ${response.status})`;
       try {
-        const errorJson = JSON.parse(responseBody);
-        logger.error('Parsed Error:', errorJson);
+        // BillDesk error responses use "HMAC" as kid, but still need actual keyId for decryption
+        const decryptedError = await verifyAndDecrypt(
+          responseBody,
+          BILLDESK_CONFIG.encryptionPassword,
+          BILLDESK_CONFIG.keyId,
+          BILLDESK_CONFIG.signingPassword,
+          BILLDESK_CONFIG.keyId
+        );
+        const errorJson = JSON.parse(decryptedError);
+        logger.error('Decrypted BillDesk Error:', errorJson);
+        console.log('\n   DECRYPTED ERROR:');
+        console.log('   ', JSON.stringify(errorJson, null, 2));
+        
+        // Provide specific error message if available
+        if (errorJson.message) {
+          errorMessage = `BillDesk Error: ${errorJson.message} (${errorJson.error_code || response.status})`;
+        }
       } catch (e) {
-        logger.error('Could not parse error response as JSON');
+        // Try direct JSON parse as fallback
+        try {
+          const errorJson = JSON.parse(responseBody);
+          logger.error('Direct JSON Error:', errorJson);
+          if (errorJson.message) {
+            errorMessage = `BillDesk Error: ${errorJson.message}`;
+          }
+        } catch (e2) {
+          logger.error('Could not decrypt or parse error response');
+        }
       }
       
       // Security: Generic error message for client
-      throw new Error(`Payment gateway error. Please try again. (Status: ${response.status})`);
+      throw new Error(errorMessage);
     }
     
     logger.info('BillDesk API call successful, processing response...');
