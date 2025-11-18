@@ -85,7 +85,10 @@ async function testJWEEncryption(key) {
       mercid: CONFIG.merchantId,
       orderid: 'TEST_ORDER_' + Date.now(),
       amount: '100.00',
-      currency: '356'
+      currency: '356',
+      order_date: moment().tz("Asia/Kolkata").format("YYYY-MM-DDTHH:mm:ssZZ"),
+      ru: CONFIG.returnUrl,
+      itemcode: 'DIRECT'
     };
     
     const header = {
@@ -106,7 +109,7 @@ async function testJWEEncryption(key) {
     
     console.log('✅ JWE encryption successful');
     console.log('   Encrypted token length:', encrypted.length);
-    return encrypted;
+    return { encrypted, testPayload };
   } catch (error) {
     console.log('❌ JWE encryption failed:', error.message);
     return null;
@@ -157,18 +160,25 @@ function testJWSSigning(payload) {
 }
 
 // Step 5: Test API Call to BillDesk
-async function testBillDeskAPI(jwsToken) {
-  console.log('\n🌐 Step 5: Testing BillDesk API Call...\n');
+async function testBillDeskAPI(jwsToken, jsonRequest) {
+  console.log('🌐 Step 5: Testing BillDesk API Call...\n');
   
   const traceId = `TEST${Date.now()}${Math.floor(Math.random() * 1000)}`.slice(0, 35);
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const basicAuth = Buffer.from(`${CONFIG.clientId}:${CONFIG.clientSecret}`).toString('base64');
   
-  console.log('Request Details:');
-  console.log('   URL:', CONFIG.paymentUrl);
+  console.log('3️⃣  TRACE ID & TIMESTAMP:');
   console.log('   BD-Traceid:', traceId);
   console.log('   BD-Timestamp:', timestamp);
   console.log('   Timestamp (Human):', new Date(timestamp * 1000).toISOString());
+  console.log('   Timestamp (IST):', moment().tz('Asia/Kolkata').format('YYYY-MM-DD HH:mm:ss'));
+  
+  console.log('\n4️⃣  REQUEST API URL:');
+  console.log('   ', CONFIG.paymentUrl);
+  
+  console.log('\nRequest Headers:');
+  console.log('   Content-Type: application/jose');
+  console.log('   Accept: application/jose');
   console.log('   Authorization: Basic', basicAuth.substring(0, 20) + '...');
   console.log('   Client ID:', CONFIG.clientId);
   console.log('   Merchant ID:', CONFIG.merchantId);
@@ -244,11 +254,13 @@ async function runTests() {
       process.exit(1);
     }
     
-    const encryptedPayload = await testJWEEncryption(encryptionKey);
-    if (!encryptedPayload) {
+    const encryptionResult = await testJWEEncryption(encryptionKey);
+    if (!encryptionResult) {
       console.log('\n❌ Test failed at JWE encryption');
       process.exit(1);
     }
+    
+    const { encrypted: encryptedPayload, testPayload } = encryptionResult;
     
     const jwsToken = testJWSSigning(encryptedPayload);
     if (!jwsToken) {
@@ -256,7 +268,22 @@ async function runTests() {
       process.exit(1);
     }
     
-    const apiSuccess = await testBillDeskAPI(jwsToken);
+    // Log complete details for BillDesk support
+    console.log('\n' + '='.repeat(80));
+    console.log('📋 COMPLETE REQUEST DETAILS FOR BILLDESK SUPPORT');
+    console.log('='.repeat(80) + '\n');
+    
+    console.log('2️⃣  JSON REQUEST (Before Encryption):');
+    console.log('━'.repeat(80));
+    console.log(JSON.stringify(testPayload, null, 2));
+    console.log('━'.repeat(80) + '\n');
+    
+    console.log('1️⃣  FINAL SIGNED ENCRYPTION STRING (JWS Token):');
+    console.log('━'.repeat(80));
+    console.log(jwsToken);
+    console.log('━'.repeat(80) + '\n');
+    
+    const apiSuccess = await testBillDeskAPI(jwsToken, testPayload);
     
     console.log('\n========================================');
     console.log('TEST SUMMARY');
@@ -273,6 +300,19 @@ async function runTests() {
     } else {
       console.log('❌ BillDesk API Call: FAILED (401 Unauthorized)\n');
       console.log('⚠️  Your code is correct but IP whitelisting is required.\n');
+      
+      console.log('\n' + '='.repeat(80));
+      console.log('📧 COPY ABOVE LOGS AND SEND TO BILLDESK SUPPORT');
+      console.log('='.repeat(80));
+      console.log('\nThe above output contains ALL 4 items BillDesk requested:');
+      console.log('  1️⃣  Final Signed Encryption String (JWS Token)');
+      console.log('  2️⃣  JSON Request (Before Encryption)');
+      console.log('  3️⃣  Trace ID & Timestamp');
+      console.log('  4️⃣  Request API URL');
+      console.log('\nAlso include:');
+      console.log('  - Server IP: 13.202.208.101');
+      console.log('  - Environment: UAT');
+      console.log('  - Error Code: GNAUE0003 (Authentication failed)\n');
     }
     
     console.log('========================================\n');
