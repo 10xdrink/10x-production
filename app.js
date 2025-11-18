@@ -63,14 +63,14 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
-        connectSrc: ["'self'"],
-        fontSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://*.billdesk.com"],
+        scriptSrc: ["'self'", "https://*.billdesk.com"],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://*.billdesk.com"],
+        connectSrc: ["'self'", "https://*.billdesk.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
-        frameSrc: ["'none'"],
+        frameSrc: ["'self'", "https://*.billdesk.com"],
       },
     },
     hsts: {
