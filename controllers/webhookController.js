@@ -89,8 +89,22 @@ exports.billDeskReturn = async (req, res) => {
     logger.info('Request headers:', JSON.stringify(req.headers, null, 2));
     logger.info('Request query:', JSON.stringify(req.query, null, 2));
     logger.info('Request body:', JSON.stringify(req.body, null, 2));
+    logger.info('Request params:', JSON.stringify(req.params, null, 2));
     
-    const responseData = req.query.msg || req.body;
+    // Try multiple sources for response data
+    let responseData = req.body;
+    
+    // If body is empty, try query params
+    if (!responseData || (typeof responseData === 'object' && Object.keys(responseData).length === 0)) {
+      responseData = req.query.msg || req.query.response || req.query;
+      logger.info('Using query params as response data');
+    }
+    
+    // If body has a specific field with the response
+    if (req.body && (req.body.msg || req.body.response || req.body.transaction_response)) {
+      responseData = req.body.msg || req.body.response || req.body.transaction_response;
+      logger.info('Extracted response from body field');
+    }
     
     if (!responseData || (typeof responseData === 'object' && Object.keys(responseData).length === 0)) {
       logger.error('No response data received from BillDesk');

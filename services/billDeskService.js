@@ -773,11 +773,30 @@ async function processResponse(responseData) {
       verifiedData = { ...verifiedData, ...innerData };
     } catch (e) {
       logger.error('Failed to decrypt encrypted_response:', e.message);
+      logger.error('Encrypted response token:', verifiedData.encrypted_response.substring(0, 100));
+      
+      // Try to extract orderid from the outer response before giving up
+      let orderNumberFromError = 'unknown';
+      
+      // Check if txnResponse has orderid
+      if (verifiedData.txnResponse) {
+        try {
+          const txnResp = typeof verifiedData.txnResponse === 'string' 
+            ? JSON.parse(verifiedData.txnResponse) 
+            : verifiedData.txnResponse;
+          orderNumberFromError = txnResp.orderid || txnResp.order_id || txnResp.mercorderid || 'unknown';
+          logger.info('Extracted orderid from error txnResponse:', orderNumberFromError);
+        } catch (parseErr) {
+          logger.warn('Could not parse txnResponse from error');
+        }
+      }
+      
       // If decryption fails, return error with available info
       return {
         success: false,
         message: verifiedData.message || 'Payment failed',
         status: 'failed',
+        orderNumber: orderNumberFromError,
         data: verifiedData,
       };
     }

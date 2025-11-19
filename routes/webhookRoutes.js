@@ -20,6 +20,7 @@ router.get(
 
 router.post(
   '/billdesk/return',
+  bodyParser.json(),
   bodyParser.urlencoded({ extended: true }),
   webhookController.billDeskReturn
 );
