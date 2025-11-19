@@ -92,14 +92,14 @@ exports.billDeskReturn = async (req, res) => {
     const result = await billDeskService.processResponse(responseData);
     
     // Redirect to frontend with status
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL;
     const redirectUrl = `${frontendUrl}/payment-status?status=${result.status}&orderNumber=${result.orderNumber}`;
     
     res.redirect(redirectUrl);
     
   } catch (error) {
     logger.error('BillDesk return URL error:', error);
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = process.env.FRONTEND_URL;
     res.redirect(`${frontendUrl}/payment-status?status=error`);
   }
 };
