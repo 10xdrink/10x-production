@@ -555,19 +555,38 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
         logger.info('Direct JSON response received:', directJson);
         
         // Handle direct JSON response
-        const { bdorderid, rdata } = directJson;
+        const { bdorderid, links } = directJson;
         
         if (bdorderid) {
+          // Extract rdata from links.parameters as per BillDesk v1.2 spec
+          let rdata = null;
+          let sdkUrl = 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk';
+          
+          if (links && Array.isArray(links)) {
+            const redirectLink = links.find(link => 
+              link.href && link.href.includes('embeddedsdk') && link.rel === 'redirect'
+            );
+            
+            if (redirectLink) {
+              sdkUrl = redirectLink.href;
+              if (redirectLink.parameters) {
+                rdata = redirectLink.parameters.rdata;
+                logger.info('Extracted rdata from links.parameters (direct JSON):', rdata ? 'present' : 'missing');
+              }
+            }
+          }
+          
           txn.metadata.bdOrderId = bdorderid;
           txn.metadata.traceId = traceId;
+          txn.metadata.rdata = rdata;
           await txn.save();
           
           return {
             success: true,
-            paymentUrl: 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk',
+            paymentUrl: sdkUrl,
             merchantId: BILLDESK_CONFIG.merchantId,
             bdOrderId: bdorderid,
-            rdata: rdata || null,
+            rdata: rdata,
             transactionId: txn._id,
             orderNumber,
             // Debug info for frontend console
@@ -587,27 +606,87 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
     
     logger.info('BillDesk Response (decrypted):', JSON.stringify(responseJson, null, 2));
     
-    const { bdorderid, rdata } = responseJson;
+    // ============================================================================
+    // CONSOLE LOG FOR BILLDESK RESPONSE STRUCTURE
+    // ============================================================================
+    console.log('\n' + '='.repeat(80));
+    console.log('📦 BILLDESK RESPONSE STRUCTURE');
+    console.log('='.repeat(80));
+    console.log(JSON.stringify(responseJson, null, 2));
+    console.log('='.repeat(80) + '\n');
+    
+    const { bdorderid, links } = responseJson;
     
     if (!bdorderid) {
       throw new Error('Missing bdorderid in BillDesk response');
     }
     
+    // Extract rdata from links.parameters as per BillDesk v1.2 spec
+    let rdata = null;
+    let sdkUrl = 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk';
+    
+    if (links && Array.isArray(links)) {
+      console.log('🔍 Searching for redirect link in', links.length, 'links...');
+      
+      // Find the redirect link containing embeddedsdk
+      const redirectLink = links.find(link => 
+        link.href && link.href.includes('embeddedsdk') && link.rel === 'redirect'
+      );
+      
+      if (redirectLink) {
+        console.log('✅ Found redirect link:', redirectLink.href);
+        sdkUrl = redirectLink.href;
+        
+        // Extract parameters (mercid, bdorderid, rdata)
+        if (redirectLink.parameters) {
+          console.log('📋 Redirect link parameters:', JSON.stringify(redirectLink.parameters, null, 2));
+          rdata = redirectLink.parameters.rdata;
+          logger.info('Extracted rdata from links.parameters:', rdata ? 'present' : 'missing');
+          
+          if (rdata) {
+            console.log('✅ rdata extracted successfully (length:', rdata.length, ')');
+          } else {
+            console.log('⚠️  rdata is null or undefined in parameters');
+          }
+        } else {
+          console.log('⚠️  No parameters object in redirect link');
+        }
+      } else {
+        console.log('⚠️  No redirect link found in links array');
+      }
+    } else {
+      console.log('⚠️  No links array in response or links is not an array');
+    }
+    
+    if (!rdata) {
+      logger.warn('Warning: rdata not found in links.parameters - SDK may fail');
+      console.log('❌ WARNING: rdata not found - SDK launch will likely fail');
+    }
+    
     // Update transaction
     txn.metadata.bdOrderId = bdorderid;
     txn.metadata.traceId = traceId;
+    txn.metadata.rdata = rdata;
     await txn.save();
     
     logger.info('=== BillDesk Payment Request Creation Completed Successfully ===');
     
     return {
       success: true,
-      paymentUrl: 'https://uat1.billdesk.com/u2/web/v1_2/embeddedsdk',
+      paymentUrl: sdkUrl,
       merchantId: BILLDESK_CONFIG.merchantId,
       bdOrderId: bdorderid,
-      rdata: rdata || null,
+      rdata: rdata,
       transactionId: txn._id,
       orderNumber,
+      // Debug info for frontend console
+      debugInfo: {
+        traceId: traceId,
+        timestamp: timestamp,
+        requestUrl: BILLDESK_CONFIG.paymentUrl,
+        jsonRequest: jsonRequest,
+        jwsToken: jwsToken
+      }
     };
   } catch (error) {
     logger.error('=== BillDesk Payment Request Creation Failed ===');
