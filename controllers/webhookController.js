@@ -108,6 +108,13 @@ exports.billDeskReturn = async (req, res) => {
       return res.status(500).json({ success: false, message: 'Frontend URL not configured' });
     }
     
+    // Check if processing was successful
+    if (!result || !result.status || !result.orderNumber) {
+      logger.error('Invalid result from processResponse:', result);
+      const errorMessage = result?.message || 'Payment processing failed';
+      return res.redirect(`${frontendUrl}/payment-status?status=failed&message=${encodeURIComponent(errorMessage)}`);
+    }
+    
     const redirectUrl = `${frontendUrl}/payment-status?status=${result.status}&orderNumber=${result.orderNumber}`;
     logger.info('Redirecting to:', redirectUrl);
     

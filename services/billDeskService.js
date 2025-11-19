@@ -716,6 +716,8 @@ async function createPaymentRequest(order, clientIp = '127.0.0.1') {
  */
 async function processResponse(responseData) {
   logger.info('Processing BillDesk response');
+  logger.info('Response data type:', typeof responseData);
+  logger.info('Response data:', JSON.stringify(responseData).substring(0, 500));
   
   let verifiedData;
   
@@ -749,14 +751,30 @@ async function processResponse(responseData) {
     verifiedData = responseData;
   }
   
-  logger.info('Verified BillDesk response:', verifiedData);
+  logger.info('Verified BillDesk response:', JSON.stringify(verifiedData, null, 2));
 
   const { merchantid, orderid, transactionid, status } = verifiedData;
+  
+  // Log which fields are present/missing
+  logger.info('Field check:', {
+    merchantid: merchantid ? 'present' : 'MISSING',
+    orderid: orderid ? 'present' : 'MISSING',
+    transactionid: transactionid ? 'present' : 'MISSING',
+    status: status ? 'present' : 'MISSING'
+  });
+  
   if (!merchantid || !orderid || !status) {
     logger.error('Missing required fields in BillDesk response');
+    logger.error('Available fields:', Object.keys(verifiedData));
     return {
       success: false,
-      message: 'Invalid response from payment gateway',
+      message: `Invalid response from payment gateway - Missing fields: ${
+        [
+          !merchantid && 'merchantid',
+          !orderid && 'orderid', 
+          !status && 'status'
+        ].filter(Boolean).join(', ')
+      }`,
       data: verifiedData,
     };
   }
