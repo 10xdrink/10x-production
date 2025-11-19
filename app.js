@@ -88,14 +88,37 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(",").map(origin => origin.trim())
   : [process.env.FRONTEND_URL, process.env.ADMIN_URL, process.env.INFLUENCER_URL, 'http://localhost:5175', process.env.INFLUENCER_PANEL_URL, 'http://localhost:8080'];
 
+// Add BillDesk domains for webhook callbacks
+const billDeskDomains = [
+  'https://uat1.billdesk.com',
+  'https://uat.billdesk.com',
+  'https://www.billdesk.com',
+  'https://billdesk.com',
+  'https://pgi.billdesk.com',
+  'https://api.billdesk.com'
+];
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
+      // Allow requests with no origin (server-to-server, mobile apps, Postman)
+      if (!origin) {
+        return callback(null, true);
       }
+      
+      // Allow whitelisted origins
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      
+      // Allow BillDesk domains for webhook callbacks
+      if (billDeskDomains.some(domain => origin.startsWith(domain))) {
+        return callback(null, true);
+      }
+      
+      // Log and reject other origins
+      logger.warn(`CORS blocked request from origin: ${origin}`);
+      callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   })
@@ -119,8 +142,12 @@ const apiLimiter = rateLimit({
   max: process.env.RATE_LIMIT_MAX ? parseInt(process.env.RATE_LIMIT_MAX) : 100, // Limit each IP to 100 requests per windowMs
   message: "Too many requests from this IP, please try again later.",
   headers: true,
+  skip: (req) => {
+    // Skip rate limiting for webhook endpoints to allow BillDesk callbacks
+    return req.path.startsWith('/api/webhooks');
+  }
 });
-app.use("/api/", apiLimiter); // Rate limiter disabled
+app.use("/api/", apiLimiter);
 
 // Logging Middleware
 app.use(morgan("combined", { stream: logger.stream }));

@@ -85,21 +85,42 @@ exports.billDeskWebhook = async (req, res) => {
 exports.billDeskReturn = async (req, res) => {
   try {
     logger.info('BillDesk return URL accessed');
+    logger.info('Request method:', req.method);
+    logger.info('Request headers:', JSON.stringify(req.headers, null, 2));
+    logger.info('Request query:', JSON.stringify(req.query, null, 2));
+    logger.info('Request body:', JSON.stringify(req.body, null, 2));
     
     const responseData = req.query.msg || req.body;
+    
+    if (!responseData || (typeof responseData === 'object' && Object.keys(responseData).length === 0)) {
+      logger.error('No response data received from BillDesk');
+      const frontendUrl = process.env.FRONTEND_URL;
+      return res.redirect(`${frontendUrl}/payment-status?status=error&message=no_data`);
+    }
     
     // Process the BillDesk response
     const result = await billDeskService.processResponse(responseData);
     
     // Redirect to frontend with status
     const frontendUrl = process.env.FRONTEND_URL;
+    if (!frontendUrl) {
+      logger.error('FRONTEND_URL is not configured');
+      return res.status(500).json({ success: false, message: 'Frontend URL not configured' });
+    }
+    
     const redirectUrl = `${frontendUrl}/payment-status?status=${result.status}&orderNumber=${result.orderNumber}`;
+    logger.info('Redirecting to:', redirectUrl);
     
     res.redirect(redirectUrl);
     
   } catch (error) {
     logger.error('BillDesk return URL error:', error);
+    logger.error('Error stack:', error.stack);
     const frontendUrl = process.env.FRONTEND_URL;
-    res.redirect(`${frontendUrl}/payment-status?status=error`);
+    if (frontendUrl) {
+      res.redirect(`${frontendUrl}/payment-status?status=error&message=${encodeURIComponent(error.message)}`);
+    } else {
+      res.status(500).json({ success: false, message: error.message });
+    }
   }
 };
