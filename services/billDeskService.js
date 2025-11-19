@@ -743,6 +743,8 @@ async function processResponse(responseData) {
         return {
           success: false,
           message: 'Invalid signature or encryption from payment gateway',
+          status: 'failed',
+          orderNumber: 'unknown',
           data: responseData,
         };
       }
@@ -752,6 +754,34 @@ async function processResponse(responseData) {
   }
   
   logger.info('Verified BillDesk response:', JSON.stringify(verifiedData, null, 2));
+  
+  // Check if response has encrypted_response field (error case from BillDesk)
+  if (verifiedData.encrypted_response) {
+    logger.info('Found encrypted_response field, attempting to decrypt...');
+    try {
+      const decryptedInner = await verifyAndDecrypt(
+        verifiedData.encrypted_response,
+        BILLDESK_CONFIG.encryptionPassword,
+        BILLDESK_CONFIG.keyId,
+        BILLDESK_CONFIG.signingPassword,
+        BILLDESK_CONFIG.keyId
+      );
+      const innerData = JSON.parse(decryptedInner);
+      logger.info('Decrypted inner response:', JSON.stringify(innerData, null, 2));
+      
+      // Use the decrypted inner data instead
+      verifiedData = { ...verifiedData, ...innerData };
+    } catch (e) {
+      logger.error('Failed to decrypt encrypted_response:', e.message);
+      // If decryption fails, return error with available info
+      return {
+        success: false,
+        message: verifiedData.message || 'Payment failed',
+        status: 'failed',
+        data: verifiedData,
+      };
+    }
+  }
 
   const { merchantid, orderid, transactionid, status } = verifiedData;
   
@@ -763,18 +793,46 @@ async function processResponse(responseData) {
     status: status ? 'present' : 'MISSING'
   });
   
-  if (!merchantid || !orderid || !status) {
+  if (!merchantid || !orderid) {
     logger.error('Missing required fields in BillDesk response');
     logger.error('Available fields:', Object.keys(verifiedData));
+    
+    // Try to extract orderid from error_code or txnResponse
+    let fallbackOrderId = orderid;
+    if (!fallbackOrderId && verifiedData.txnResponse) {
+      try {
+        const txnResp = typeof verifiedData.txnResponse === 'string' 
+          ? JSON.parse(verifiedData.txnResponse) 
+          : verifiedData.txnResponse;
+        fallbackOrderId = txnResp.orderid || txnResp.order_id;
+        logger.info('Extracted orderid from txnResponse:', fallbackOrderId);
+      } catch (e) {
+        logger.warn('Could not parse txnResponse');
+      }
+    }
+    
+    // If we still don't have critical fields, return error with status 'failed'
+    if (!fallbackOrderId) {
+      return {
+        success: false,
+        message: verifiedData.message || `Payment processing error - Missing fields: ${
+          [
+            !merchantid && 'merchantid',
+            !orderid && 'orderid'
+          ].filter(Boolean).join(', ')
+        }`,
+        status: 'failed',
+        orderNumber: 'unknown',
+        data: verifiedData,
+      };
+    }
+    
+    // Use fallback orderid
     return {
       success: false,
-      message: `Invalid response from payment gateway - Missing fields: ${
-        [
-          !merchantid && 'merchantid',
-          !orderid && 'orderid', 
-          !status && 'status'
-        ].filter(Boolean).join(', ')
-      }`,
+      message: verifiedData.message || 'Payment failed',
+      status: status || 'failed',
+      orderNumber: fallbackOrderId,
       data: verifiedData,
     };
   }
@@ -785,6 +843,8 @@ async function processResponse(responseData) {
     return {
       success: false,
       message: 'Transaction record not found',
+      status: 'failed',
+      orderNumber: orderid,
       data: responseData,
     };
   }
