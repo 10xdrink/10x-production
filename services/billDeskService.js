@@ -775,10 +775,10 @@ async function processResponse(responseData) {
       logger.error('Failed to decrypt encrypted_response:', e.message);
       logger.error('Encrypted response token:', verifiedData.encrypted_response.substring(0, 100));
       
-      // Try to extract orderid from the outer response before giving up
+      // Try to extract orderid from multiple sources
       let orderNumberFromError = 'unknown';
       
-      // Check if txnResponse has orderid
+      // 1. Check txnResponse
       if (verifiedData.txnResponse) {
         try {
           const txnResp = typeof verifiedData.txnResponse === 'string' 
@@ -791,12 +791,30 @@ async function processResponse(responseData) {
         }
       }
       
+      // 2. Try to find recent pending transaction in our database
+      if (orderNumberFromError === 'unknown') {
+        try {
+          const recentTransaction = await Transaction.findOne({ 
+            status: 'pending',
+            createdAt: { $gte: new Date(Date.now() - 10 * 60 * 1000) } // Last 10 minutes
+          }).sort({ createdAt: -1 });
+          
+          if (recentTransaction) {
+            orderNumberFromError = recentTransaction.orderNumber;
+            logger.info('Found recent transaction:', orderNumberFromError);
+          }
+        } catch (dbErr) {
+          logger.error('Database lookup failed:', dbErr.message);
+        }
+      }
+      
       // If decryption fails, return error with available info
       return {
         success: false,
         message: verifiedData.message || 'Payment failed',
         status: 'failed',
         orderNumber: orderNumberFromError,
+        errorCode: verifiedData.error_code || 'UNKNOWN',
         data: verifiedData,
       };
     }
@@ -830,6 +848,23 @@ async function processResponse(responseData) {
       }
     }
     
+    // Try to find from recent transaction if still not found
+    if (!fallbackOrderId) {
+      try {
+        const recentTransaction = await Transaction.findOne({ 
+          status: 'pending',
+          createdAt: { $gte: new Date(Date.now() - 10 * 60 * 1000) } // Last 10 minutes
+        }).sort({ createdAt: -1 });
+        
+        if (recentTransaction) {
+          fallbackOrderId = recentTransaction.orderNumber;
+          logger.info('Found order from recent transaction:', fallbackOrderId);
+        }
+      } catch (dbErr) {
+        logger.error('Database lookup failed:', dbErr.message);
+      }
+    }
+    
     // If we still don't have critical fields, return error with status 'failed'
     if (!fallbackOrderId) {
       return {
@@ -842,6 +877,7 @@ async function processResponse(responseData) {
         }`,
         status: 'failed',
         orderNumber: 'unknown',
+        errorCode: verifiedData.error_code || 'UNKNOWN',
         data: verifiedData,
       };
     }
@@ -852,6 +888,7 @@ async function processResponse(responseData) {
       message: verifiedData.message || 'Payment failed',
       status: status || 'failed',
       orderNumber: fallbackOrderId,
+      errorCode: verifiedData.error_code || 'UNKNOWN',
       data: verifiedData,
     };
   }

@@ -126,10 +126,21 @@ exports.billDeskReturn = async (req, res) => {
     if (!result || !result.status || !result.orderNumber) {
       logger.error('Invalid result from processResponse:', result);
       const errorMessage = result?.message || 'Payment processing failed';
-      return res.redirect(`${frontendUrl}/payment-status?status=failed&message=${encodeURIComponent(errorMessage)}`);
+      const errorCode = result?.errorCode || 'UNKNOWN';
+      return res.redirect(`${frontendUrl}/payment-status?status=failed&message=${encodeURIComponent(errorMessage)}&errorCode=${errorCode}`);
     }
     
-    const redirectUrl = `${frontendUrl}/payment-status?status=${result.status}&orderNumber=${result.orderNumber}`;
+    // Build redirect URL with all relevant info
+    let redirectUrl = `${frontendUrl}/payment-status?status=${result.status}&orderNumber=${result.orderNumber}`;
+    
+    // Add error details if payment failed
+    if (result.status === 'failed' && result.message) {
+      redirectUrl += `&message=${encodeURIComponent(result.message)}`;
+      if (result.errorCode) {
+        redirectUrl += `&errorCode=${result.errorCode}`;
+      }
+    }
+    
     logger.info('Redirecting to:', redirectUrl);
     
     res.redirect(redirectUrl);
